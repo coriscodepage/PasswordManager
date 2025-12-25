@@ -26,9 +26,10 @@ public:
     QVector<Cred> load(const QString &path);
 
 
-    QByteArray encrypt(const QString &text) { return text.toUtf8(); }               // TODO: Make ACTUAL encryption
-    QString decrypt(const QByteArray &cypher) { return QString::fromUtf8(cypher); } // TODO: Make ACTUAL decryption
-
+    QByteArray encrypt(const QString &text) { return text.toUtf8(); }               // TODO: FIXME: Make ACTUAL encryption
+    QString decrypt(const QByteArray &cypher) { return QString::fromUtf8(cypher); } // TODO: FIXME: Make ACTUAL decryption
+    // TODO: Get a temp key for every session to store passwords securly
+    // TODO: Enc/dec files
 
 signals:
 };

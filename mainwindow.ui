@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>Menadżer haseł[*]</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QTableView" name="TableView">
@@ -29,8 +29,8 @@
      <rect>
       <x>240</x>
       <y>40</y>
-      <width>160</width>
-      <height>80</height>
+      <width>155</width>
+      <height>27</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout">
@@ -46,31 +46,38 @@
      </item>
     </layout>
    </widget>
-   <widget class="QPushButton" name="AddButton">
+   <widget class="QWidget" name="horizontalLayoutWidget_2">
     <property name="geometry">
      <rect>
-      <x>480</x>
-      <y>50</y>
-      <width>80</width>
-      <height>26</height>
+      <x>430</x>
+      <y>30</y>
+      <width>331</width>
+      <height>91</height>
      </rect>
     </property>
-    <property name="text">
-     <string>Dodaj</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="PasswordVisibilityButton">
-    <property name="geometry">
-     <rect>
-      <x>580</x>
-      <y>50</y>
-      <width>121</width>
-      <height>26</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>pokaż/ukryj hasła</string>
-    </property>
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <item>
+      <widget class="QPushButton" name="AddButton">
+       <property name="text">
+        <string>Dodaj</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="PasswordVisibilityButton">
+       <property name="text">
+        <string>pokaż/ukryj hasła</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="ClearAllButton">
+       <property name="text">
+        <string>Usuń wszystko</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -82,54 +89,102 @@
      <height>23</height>
     </rect>
    </property>
-   <widget class="QMenu" name="menuabab">
+   <widget class="QMenu" name="menuFile">
     <property name="title">
      <string>Plik</string>
     </property>
-    <addaction name="actionNowy"/>
-    <addaction name="actionOtw_rz"/>
-    <addaction name="actionZapisz"/>
-    <addaction name="actionZapisz_jako"/>
-    <addaction name="actionZamknij"/>
+    <addaction name="actionNew"/>
+    <addaction name="actionOpen"/>
+    <addaction name="actionSave"/>
+    <addaction name="actionSaveAs"/>
+    <addaction name="actionClose"/>
    </widget>
-   <widget class="QMenu" name="menucdcd">
+   <widget class="QMenu" name="menuHelp">
     <property name="title">
      <string>Pomoc</string>
     </property>
-    <addaction name="actionInformacje"/>
+    <addaction name="actionInfo"/>
    </widget>
-   <addaction name="menuabab"/>
-   <addaction name="menucdcd"/>
+   <widget class="QMenu" name="menuEdit">
+    <property name="title">
+     <string>Edytuj</string>
+    </property>
+    <addaction name="actionUndo"/>
+    <addaction name="actionRedo"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuEdit"/>
+   <addaction name="menuHelp"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
-  <action name="actionInformacje">
-   <property name="text">
-    <string>Informacje</string>
-   </property>
-  </action>
-  <action name="actionNowy">
+  <action name="actionNew">
    <property name="text">
     <string>Nowy plik</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+N</string>
+   </property>
   </action>
-  <action name="actionOtw_rz">
+  <action name="actionOpen">
    <property name="text">
     <string>Otwórz</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+O</string>
+   </property>
   </action>
-  <action name="actionZapisz">
+  <action name="actionSave">
    <property name="text">
     <string>Zapisz</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
+   </property>
   </action>
-  <action name="actionZapisz_jako">
+  <action name="actionSaveAs">
    <property name="text">
     <string>Zapisz jako</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+S</string>
+   </property>
   </action>
-  <action name="actionZamknij">
+  <action name="actionClose">
    <property name="text">
     <string>Zamknij</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+W</string>
+   </property>
+  </action>
+  <action name="actionUndo">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Cofnij</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Z</string>
+   </property>
+  </action>
+  <action name="actionRedo">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Powtórz</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+R</string>
+   </property>
+  </action>
+  <action name="actionInfo">
+   <property name="text">
+    <string>Informacje</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+H</string>
    </property>
   </action>
  </widget>

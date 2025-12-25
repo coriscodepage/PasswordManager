@@ -7,6 +7,8 @@ class CredCommand : public QUndoCommand
 {
 public:
     CredCommand();
+
+private:
 };
 
 #endif // CREDCOMMAND_H

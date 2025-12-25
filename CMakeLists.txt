@@ -28,7 +28,12 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         vault.h vault.cpp
         creddialog.h creddialog.cpp creddialog.ui
         filemanager.h filemanager.cpp
-        credcommand.h credcommand.cpp
+        deletecommand.h
+        insertcommand.h
+        editcommand.h
+        clearcommand.h
+
+
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET PasswordManager APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

@@ -27,7 +27,11 @@ public:
 
     // ADDED METHODS
     void setCredentials(const QVector<Cred> &data);
+    void clearCredentials();
     void addCredential(const Cred &cred);
+    void updateCredential(const Cred &cred, int row);
+    QVector<Cred> getCredentials() const { return m_data; }
+    void insertCredential(const Cred &cred, int row);
     void removeCredential(int row);
     void changeVisibility();
     void setVisibility(bool visibility);

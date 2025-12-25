@@ -22,11 +22,15 @@ public:
 
 // ADDED METHODS
     void onAddClicked();
+    void onEditClicked(const QModelIndex &proxyIndex);
+    void onDeleteAllClicked();
+    void onCleanChanged(bool clean);
 
 private:
     Ui::MainWindow *ui;
     CredentialModel *m_model;
     QSortFilterProxyModel *m_proxy;
     QUndoStack *m_commandStack;
+    bool m_clean;
 };
 #endif // MAINWINDOW_H

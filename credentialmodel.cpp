@@ -43,7 +43,7 @@ QVariant CredentialModel::data(const QModelIndex &index, int role) const
 
     switch (index.column()) {
         case 0:
-            return concrete_cred.getWebsite();
+            return concrete_cred.getService();
         case 1:
             return concrete_cred.getUsername();
         case 2:
@@ -67,10 +67,31 @@ void CredentialModel::setCredentials(const QVector<Cred> &data) {
     endResetModel();
 }
 
+void CredentialModel::clearCredentials() {
+    beginResetModel();
+    m_data.clear();
+    endResetModel();
+}
+
 void CredentialModel::addCredential(const Cred &cred) {
     beginInsertRows(QModelIndex(), m_data.count(), m_data.count());
     m_data.append(cred);
     endInsertRows();
+}
+
+void CredentialModel::insertCredential(const Cred &cred, int row) {
+    if (row < 0 || row >= m_data.count()) return;
+    beginInsertRows(QModelIndex(), m_data.count(), m_data.count());
+    m_data.insert(row, cred);
+    endInsertRows();
+}
+
+void CredentialModel::updateCredential(const Cred &cred, int row) {
+    if (row < 0 || row >= m_data.count()) return;
+    m_data[row] = cred;
+    QModelIndex top_left = index(row, 0);
+    QModelIndex bottom_right = index(row, columnCount() - 1);
+    emit dataChanged(top_left, bottom_right, {Qt::DisplayRole, Qt::EditRole});
 }
 
 void CredentialModel::removeCredential(int row) {

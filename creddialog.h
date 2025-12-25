@@ -1,7 +1,6 @@
 #ifndef CREDDIALOG_H
 #define CREDDIALOG_H
 
-#include "cred.h"
 #include <QDialog>
 
 namespace Ui {
@@ -18,20 +17,26 @@ public:
         Deleted,
         Cancelled
     };
-
     explicit CredDialog(QWidget *parent = nullptr, bool edit_mode = false);
     ~CredDialog();
-    static std::optional<Cred> addMode(QWidget *parent = nullptr);
-    static std::pair<Result, std::optional<Cred>> editMode(const Cred &existing, QWidget *parent = nullptr);
+
+    Result result() { return m_result; }
+    QString getService();
+    QString getUsername();
+    QString getPassword();
+    void setData(const QString &service, const QString &username, const QString &password);
 
 private slots:
     void onSave();
     void onCancel();
     void onDelete();
     void onGenPasswd();
+    void updatePasswordStrength(const QString &password);
 private:
     Ui::EditDialog *ui;
     bool m_editMode;
+    bool m_passwordDirty;
+    Result m_result;
 };
 
 #endif // CREDDIALOG_H
