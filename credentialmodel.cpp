@@ -86,7 +86,7 @@ void CredentialModel::addCredential(const Cred &cred) {
 
 void CredentialModel::insertCredential(const Cred &cred, int row) {
     if (row < 0 || row >= m_data.count()) return;
-    beginInsertRows(QModelIndex(), m_data.count(), m_data.count());
+    beginInsertRows(QModelIndex(), row, row);
     m_data.insert(row, cred);
     endInsertRows();
 }

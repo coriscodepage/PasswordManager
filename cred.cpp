@@ -76,7 +76,7 @@ PasswordStrength::PasswordStrength(const QString &password) : score(0) {
     if (has_symbol)
         this->score += 10;
     else
-        this->suggestions << "Hasło powinno zawierać znam specjalny";
+        this->suggestions << "Hasło powinno zawierać znak specjalny";
 
     if (score < Ratings::WEAK)       this->rating = "Słabe";
     else if (score < Ratings::MEDIUM)  this->rating = "Średnie";

@@ -1,5 +1,4 @@
 #include "vault.h"
-#include <QDebug>
 
 Vault::Vault(QObject *parent)
     : QObject{parent} {
@@ -28,6 +27,7 @@ QByteArray Vault::encrypt(const QString &text) {
     cipher_text = iv + out.left(len + final_len);
 
     EVP_CIPHER_CTX_free(ctx);
+    qDebug() << "Vault encrypted plain text";
     return cipher_text;
 }
 
@@ -48,6 +48,7 @@ QString Vault::decrypt(const QByteArray &cypher) {
                       reinterpret_cast<const unsigned char*>(encrypted.constData()), encrypted.size());
 
     EVP_CIPHER_CTX_free(ctx);
+    qDebug() << "Vault decrypted cypher";
     return QString::fromUtf8(plainText.left(len));
 }
 

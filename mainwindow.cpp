@@ -39,18 +39,22 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->MoveDownButton, &QPushButton::clicked, this, &MainWindow::onMoveDown);
 
     connect(ui->actionNew, &QAction::triggered, this, &MainWindow::onNew);
-    connect(ui->actionClose, &QAction::triggered, this, &MainWindow::onClose);
+    connect(ui->actionClose, &QAction::triggered, this, &QApplication::quit, Qt::QueuedConnection);
     connect(ui->actionSave, &QAction::triggered, this, &MainWindow::onSave);
     connect(ui->actionNew, &QAction::triggered, this, &MainWindow::onSaveAs);
+    connect(ui->actionInfo, &QAction::triggered, this, &MainWindow::onAbout);
 
     connect(ui->SearchEdit, &QLineEdit::textChanged, m_proxy, &QSortFilterProxyModel::setFilterFixedString); // INFO: Search using ONLY the Service column!
 
     connect(ui->TableView, &QTableView::doubleClicked, this, &MainWindow::onEditClicked);
 
+    // INFO: Setting a CustomContextMenu and using the signal for password copy
     ui->TableView->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(ui->TableView, &QTableView::customContextMenuRequested, this, &MainWindow::onCopyPassword);
 
+    // INFO: If user clicks on the header disable the special sorting modes
     connect(ui->TableView->horizontalHeader(), &QHeaderView::sortIndicatorChanged, [this]() {
+        ui->TableView->horizontalHeader()->setSortIndicatorShown(true);
         ui->UseCountOrderingButton->setEnabled(true);
         ui->ManualOrderingButton->setEnabled(true);
         ui->MoveUpButton->setEnabled(false);
@@ -65,9 +69,27 @@ MainWindow::MainWindow(QWidget *parent)
     QAction *stack_undo = m_commandStack->createUndoAction(this, "Cofnij");
     QAction *stack_redo = m_commandStack->createRedoAction(this, "Powtórz");
     stack_undo->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Z));
+    stack_undo->setIcon(QIcon::fromTheme(QIcon::ThemeIcon::EditUndo));
     stack_redo->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_R));
+    stack_redo->setIcon(QIcon::fromTheme(QIcon::ThemeIcon::EditRedo));
     ui->menuEdit->addAction(stack_undo);
     ui->menuEdit->addAction(stack_redo);
+
+    // INFO: Show a message on undo/redo
+    connect(stack_undo, &QAction::triggered, this, [this](){
+        const QUndoCommand *cmd = m_commandStack->command(m_commandStack->index() - 1);
+        if (cmd) {
+            QString message = QString("Cofnięto %1").arg(cmd->text());
+            setStatusMessage(message);
+        }
+    });
+    connect(stack_redo, &QAction::triggered, this, [this](){
+        const QUndoCommand *cmd = m_commandStack->command(m_commandStack->index() - 1);
+        if (cmd) {
+            QString message = QString("Powtórzono %1").arg(cmd->text());
+            setStatusMessage(message);
+        }
+    });
 }
 
 MainWindow::~MainWindow()
@@ -85,7 +107,7 @@ void MainWindow::onAddClicked() {
         if (dialog->result() == CredDialog::Result::Saved) {
             Cred entry_to_add(dialog->getService(), dialog->getUsername(), Vault::getInstance().encrypt(dialog->getPassword()), m_model->getNextOrder());
             m_commandStack->push(new InsertCommand(m_model, entry_to_add));
-
+            setStatusMessage("Dodano pozycję");
         }
     }
 }
@@ -155,7 +177,7 @@ void MainWindow::onMoveUp(){
 
         QPersistentModelIndex persistent_idx(current_proxy_idx);
 
-        m_commandStack->push(new MoveCommand(m_model, m_proxy, source_row_current, source_row_above));
+        m_commandStack->push(new MoveCommand(m_model, m_proxy, source_row_current, source_row_above, ui->TableView));
 
         ui->TableView->selectRow(persistent_idx.row());
     }
@@ -177,7 +199,7 @@ void MainWindow::onMoveDown() {
 
         QPersistentModelIndex persistent_idx(current_proxy_idx);
 
-        m_commandStack->push(new MoveCommand(m_model, m_proxy, source_row_below, source_row_current));
+        m_commandStack->push(new MoveCommand(m_model, m_proxy, source_row_below, source_row_current, ui->TableView));
 
         ui->TableView->selectRow(persistent_idx.row());
     }
@@ -190,6 +212,7 @@ void MainWindow::onManualOrdering() {
     ui->MoveUpButton->setEnabled(true);
     ui->MoveDownButton->setEnabled(true);
     m_proxy->sort(CredentialModel::Columns::ORDER, Qt::AscendingOrder);
+    ui->TableView->horizontalHeader()->setSortIndicatorShown(false);
 }
 
 void MainWindow::onUsageOrdering() {
@@ -198,6 +221,7 @@ void MainWindow::onUsageOrdering() {
     ui->MoveUpButton->setEnabled(false);
     ui->MoveDownButton->setEnabled(false);
     m_proxy->sort(CredentialModel::Columns::COUNT, Qt::DescendingOrder);
+    ui->TableView->horizontalHeader()->setSortIndicatorShown(true);
 }
 
 void MainWindow::setStatusMessage(const QString &message) {
@@ -215,4 +239,7 @@ void MainWindow::onNew() {
 void MainWindow::onSave() {}
 void MainWindow::onSaveAs() {}
 void MainWindow::onOpen() {}
-void MainWindow::onClose() {}
+
+void MainWindow::onAbout() {
+    QMessageBox::about(this, "O nas", "Menadżer haseł.\nAutor: Coriscodepage.\nProject under the GPL License.\n©2025.");
+}

@@ -42,8 +42,14 @@
             <property name="enabled">
              <bool>false</bool>
             </property>
+            <property name="cursor">
+             <cursorShape>PointingHandCursor</cursorShape>
+            </property>
             <property name="text">
-             <string>⌃</string>
+             <string/>
+            </property>
+            <property name="icon">
+             <iconset theme="QIcon::ThemeIcon::GoUp"/>
             </property>
            </widget>
           </item>
@@ -52,8 +58,14 @@
             <property name="enabled">
              <bool>false</bool>
             </property>
+            <property name="cursor">
+             <cursorShape>PointingHandCursor</cursorShape>
+            </property>
             <property name="text">
-             <string>⌄</string>
+             <string/>
+            </property>
+            <property name="icon">
+             <iconset theme="QIcon::ThemeIcon::GoDown"/>
             </property>
            </widget>
           </item>
@@ -78,6 +90,9 @@
        <layout class="QHBoxLayout" name="horizontalLayout_2">
         <item>
          <widget class="QPushButton" name="AddButton">
+          <property name="cursor">
+           <cursorShape>PointingHandCursor</cursorShape>
+          </property>
           <property name="text">
            <string>Dodaj</string>
           </property>
@@ -85,6 +100,9 @@
         </item>
         <item>
          <widget class="QPushButton" name="PasswordVisibilityButton">
+          <property name="cursor">
+           <cursorShape>PointingHandCursor</cursorShape>
+          </property>
           <property name="text">
            <string>pokaż/ukryj hasła</string>
           </property>
@@ -92,6 +110,9 @@
         </item>
         <item>
          <widget class="QPushButton" name="ClearAllButton">
+          <property name="cursor">
+           <cursorShape>PointingHandCursor</cursorShape>
+          </property>
           <property name="text">
            <string>Usuń wszystko</string>
           </property>
@@ -130,6 +151,9 @@
         </item>
         <item>
          <widget class="QPushButton" name="ManualOrderingButton">
+          <property name="cursor">
+           <cursorShape>PointingHandCursor</cursorShape>
+          </property>
           <property name="text">
            <string>Sortowanie własne</string>
           </property>
@@ -137,6 +161,9 @@
         </item>
         <item>
          <widget class="QPushButton" name="UseCountOrderingButton">
+          <property name="cursor">
+           <cursorShape>PointingHandCursor</cursorShape>
+          </property>
           <property name="text">
            <string>Sortuj po użyciach</string>
           </property>
@@ -184,6 +211,9 @@
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionNew">
+   <property name="icon">
+    <iconset theme="QIcon::ThemeIcon::DocumentNew"/>
+   </property>
    <property name="text">
     <string>Nowy plik</string>
    </property>
@@ -192,6 +222,9 @@
    </property>
   </action>
   <action name="actionOpen">
+   <property name="icon">
+    <iconset theme="QIcon::ThemeIcon::DocumentOpen"/>
+   </property>
    <property name="text">
     <string>Otwórz</string>
    </property>
@@ -200,6 +233,9 @@
    </property>
   </action>
   <action name="actionSave">
+   <property name="icon">
+    <iconset theme="QIcon::ThemeIcon::DocumentSave"/>
+   </property>
    <property name="text">
     <string>Zapisz</string>
    </property>
@@ -208,6 +244,9 @@
    </property>
   </action>
   <action name="actionSaveAs">
+   <property name="icon">
+    <iconset theme="QIcon::ThemeIcon::DocumentSaveAs"/>
+   </property>
    <property name="text">
     <string>Zapisz jako</string>
    </property>
@@ -216,6 +255,9 @@
    </property>
   </action>
   <action name="actionInfo">
+   <property name="icon">
+    <iconset theme="QIcon::ThemeIcon::HelpAbout"/>
+   </property>
    <property name="text">
     <string>Informacje</string>
    </property>
@@ -224,6 +266,9 @@
    </property>
   </action>
   <action name="actionClose">
+   <property name="icon">
+    <iconset theme="QIcon::ThemeIcon::ListRemove"/>
+   </property>
    <property name="text">
     <string>Zamknij</string>
    </property>

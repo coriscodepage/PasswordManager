@@ -35,7 +35,7 @@ private slots:
     void onSave();
     void onSaveAs();
     void onOpen();
-    void onClose();
+    void onAbout();
 
 private:
     Ui::MainWindow *ui;

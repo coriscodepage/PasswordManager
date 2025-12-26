@@ -4,6 +4,8 @@
 #include <qregularexpression.h>
 #include <qvalidator.h>
 #include <QMessageBox>
+#include <QRandomGenerator>
+#include <QInputDialog>
 
 CredDialog::CredDialog(QWidget *parent, bool edit_mode)
     : QDialog(parent)
@@ -20,6 +22,7 @@ CredDialog::CredDialog(QWidget *parent, bool edit_mode)
     connect(ui->CancelButton, &QPushButton::clicked, this, &CredDialog::onCancel);
     connect(ui->SaveButton, &QPushButton::clicked, this, &CredDialog::onSave);
     connect(ui->DeleteButton, &QPushButton::clicked, this, &CredDialog::onDelete);
+    connect(ui->GeneratePasswordButton, &QPushButton::clicked, this, &CredDialog::onGenPasswd);
 
     connect(ui->PasswordEdit, &QLineEdit::textEdited, this, &CredDialog::updatePasswordStrength);
 
@@ -76,7 +79,21 @@ void CredDialog::onDelete() {
     }
 }
 
-void CredDialog::onGenPasswd() {}
+void CredDialog::onGenPasswd() {
+    static QString charset = QString("QWERTYUIOPASDFGHJKLZXCVBNM") + QString("qwertyuiopasdfghjklzxcvbnm") + QString("0123456789") + QString("!@#$%^&*:;?.,~`/(){}[]<>- ");
+
+    QString password;
+    bool ok;
+    int password_length = QInputDialog::getInt(this, "Długość hasła", "Proszę podać długość hasła:", 8, 1, 2048, 1, &ok);
+    if (ok && password_length > 0) {
+        for (int i = 0; i < password_length; ++i) {
+            auto random_index = QRandomGenerator::global()->bounded(charset.length());
+            password += charset[random_index];
+        }
+        ui->PasswordEdit->setText(password);
+        updatePasswordStrength(password);
+    }
+}
 
 void CredDialog::updatePasswordStrength(const QString &password) {
     PasswordStrength strength(password);

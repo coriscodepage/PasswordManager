@@ -26,7 +26,7 @@ public:
         , m_manualOrder(ord)
     {}
     Cred() = default;
-    QString getService() const { return m_service;}
+    QString getService() const { return m_service; }
     void setWebsite(const QString &website) { m_service = website; }
     QString getUsername() const { return m_uname; }
     void setUsername(const QString &uname) { m_uname = uname; }

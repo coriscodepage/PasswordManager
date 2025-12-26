@@ -5,6 +5,7 @@
 #include <QObject>
 #include <openssl/evp.h>
 #include <openssl/rand.h>
+#include <QDebug>
 
 class Vault : public QObject
 {
@@ -24,6 +25,7 @@ private:
         if (key.isEmpty()) {
             key.resize(AES_KEY_LENGTH);
             RAND_bytes(reinterpret_cast<unsigned char*>(key.data()), AES_KEY_LENGTH);
+            qDebug() << "Vault session key created";
         }
         return key;
     }
@@ -48,7 +50,7 @@ public:
         if (!key.isEmpty()) {
             OPENSSL_cleanse(key.data(), key.size());
         }
-
+        qDebug() << "Vault session renewed";
         key.clear();
     }
 
