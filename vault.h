@@ -3,6 +3,8 @@
 
 #include "cred.h"
 #include <QObject>
+#include <openssl/evp.h>
+#include <openssl/rand.h>
 
 class Vault : public QObject
 {
@@ -10,7 +12,21 @@ class Vault : public QObject
 private:
     Q_OBJECT
     explicit Vault(QObject *parent = nullptr);
-    QString m_key;
+    QByteArray m_file_key;
+
+    const int AES_KEY_LENGTH = 32;
+    const int AES_IV_LENGTH = 16;
+    const int SALT_LENGTH = 16;
+    const int ITERATIONS = 100000;
+
+    QByteArray& sessionKey() {
+        static QByteArray key;
+        if (key.isEmpty()) {
+            key.resize(AES_KEY_LENGTH);
+            RAND_bytes(reinterpret_cast<unsigned char*>(key.data()), AES_KEY_LENGTH);
+        }
+        return key;
+    }
 
 public:
     static Vault &getInstance() {
@@ -21,15 +37,20 @@ public:
     Vault(Vault const&) = delete;
     void operator=(Vault const&) = delete;
 
-    void setKey(const QString &key) {m_key = key;}
-    void save(const QString &path, const QVector<Cred> &data);
+    void encryptJsonWithPassword(const QJsonDocument &json, const QString &password);
     QVector<Cred> load(const QString &path);
+    QByteArray encrypt(const QString &text);
+    QString decrypt(const QByteArray &cypher);
 
+    void resetSessionKey() {
+        QByteArray& key = sessionKey();
 
-    QByteArray encrypt(const QString &text) { return text.toUtf8(); }               // TODO: FIXME: Make ACTUAL encryption
-    QString decrypt(const QByteArray &cypher) { return QString::fromUtf8(cypher); } // TODO: FIXME: Make ACTUAL decryption
-    // TODO: Get a temp key for every session to store passwords securly
-    // TODO: Enc/dec files
+        if (!key.isEmpty()) {
+            OPENSSL_cleanse(key.data(), key.size());
+        }
+
+        key.clear();
+    }
 
 signals:
 };

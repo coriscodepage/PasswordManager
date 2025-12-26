@@ -5,6 +5,7 @@
 #include <QMainWindow>
 #include <QSortFilterProxyModel>
 #include <qundostack.h>
+#include <QClipboard>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -20,17 +21,29 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-// ADDED METHODS
+private slots:
     void onAddClicked();
     void onEditClicked(const QModelIndex &proxyIndex);
     void onDeleteAllClicked();
     void onCleanChanged(bool clean);
+    void onCopyPassword();
+    void onMoveUp();
+    void onMoveDown();
+    void onManualOrdering();
+    void onUsageOrdering();
+    void onNew();
+    void onSave();
+    void onSaveAs();
+    void onOpen();
+    void onClose();
 
 private:
     Ui::MainWindow *ui;
     CredentialModel *m_model;
     QSortFilterProxyModel *m_proxy;
     QUndoStack *m_commandStack;
+    QClipboard *m_clipboard;
     bool m_clean;
+    void setStatusMessage(const QString &message);
 };
 #endif // MAINWINDOW_H

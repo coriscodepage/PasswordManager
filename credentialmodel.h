@@ -11,9 +11,17 @@ private:
     QVector<Cred> m_data;
     mutable QHash<int, QString> m_decryptedCache;
     bool m_visibility = false;
+    int m_nextOrder;
 
 
 public:
+    enum Columns {
+        SERVICE,
+        USERNAME,
+        PASSWORD,
+        COUNT,
+        ORDER,
+    };
     explicit CredentialModel(QObject *parent = nullptr);
 
     QVariant headerData(int section,
@@ -35,6 +43,10 @@ public:
     void removeCredential(int row);
     void changeVisibility();
     void setVisibility(bool visibility);
+    void incrementUseCount(int row);
+    void swapManualOrder(int row_a, int row_b);
+    int getNextOrder() { return m_nextOrder++; }
+    void setNextOrder(int ord) { m_nextOrder = ord; }
 };
 
 #endif // CREDENTIALMODEL_H

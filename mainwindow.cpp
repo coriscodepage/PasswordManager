@@ -6,14 +6,17 @@
 #include "deletecommand.h"
 #include "editcommand.h"
 #include "insertcommand.h"
+#include "movecommand.h"
 #include "vault.h"
 #include <QMessageBox>
+#include <QDebug>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    m_clipboard = QGuiApplication::clipboard();
     // INFO: Model and sorting (QSortFilterProxyModel) setup
     m_model = new CredentialModel(this);
     m_proxy = new QSortFilterProxyModel(this);
@@ -21,40 +24,57 @@ MainWindow::MainWindow(QWidget *parent)
     m_proxy->setFilterCaseSensitivity(Qt::CaseInsensitive);
 
     ui->TableView->setModel(m_proxy);
+    ui->TableView->setSelectionBehavior(QAbstractItemView::SelectRows);
+    ui->TableView->setSelectionMode(QAbstractItemView::SingleSelection);
     ui->TableView->setSortingEnabled(true);
 
     // INFO: UI plumbing
     connect(ui->AddButton, &QPushButton::clicked, this, &MainWindow::onAddClicked);
     connect(ui->ClearAllButton, &QPushButton::clicked, this, &MainWindow::onDeleteAllClicked);
     connect(ui->PasswordVisibilityButton, &QPushButton::clicked, m_model, &CredentialModel::changeVisibility);
+
+    connect(ui->UseCountOrderingButton, &QPushButton::clicked, this, &MainWindow::onUsageOrdering);
+    connect(ui->ManualOrderingButton, &QPushButton::clicked, this, &MainWindow::onManualOrdering);
+    connect(ui->MoveUpButton, &QPushButton::clicked, this, &MainWindow::onMoveUp);
+    connect(ui->MoveDownButton, &QPushButton::clicked, this, &MainWindow::onMoveDown);
+
+    connect(ui->actionNew, &QAction::triggered, this, &MainWindow::onNew);
+    connect(ui->actionClose, &QAction::triggered, this, &MainWindow::onClose);
+    connect(ui->actionSave, &QAction::triggered, this, &MainWindow::onSave);
+    connect(ui->actionNew, &QAction::triggered, this, &MainWindow::onSaveAs);
+
     connect(ui->SearchEdit, &QLineEdit::textChanged, m_proxy, &QSortFilterProxyModel::setFilterFixedString); // INFO: Search using ONLY the Service column!
+
     connect(ui->TableView, &QTableView::doubleClicked, this, &MainWindow::onEditClicked);
 
+    ui->TableView->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(ui->TableView, &QTableView::customContextMenuRequested, this, &MainWindow::onCopyPassword);
 
-    // INFO: Undo stack and context menu setup (could be simpler but I insist on using actions from the designer)
+    connect(ui->TableView->horizontalHeader(), &QHeaderView::sortIndicatorChanged, [this]() {
+        ui->UseCountOrderingButton->setEnabled(true);
+        ui->ManualOrderingButton->setEnabled(true);
+        ui->MoveUpButton->setEnabled(false);
+        ui->MoveDownButton->setEnabled(false);
+    });
+
+    // INFO: Undo stack and context menu setup
     m_commandStack = new QUndoStack(this);
 
     connect(m_commandStack, &QUndoStack::cleanChanged, this, &MainWindow::onCleanChanged);
 
     QAction *stack_undo = m_commandStack->createUndoAction(this, "Cofnij");
     QAction *stack_redo = m_commandStack->createRedoAction(this, "Powtórz");
-
-    connect(stack_undo, &QAction::changed, this, [this, stack_undo]() {
-        ui->actionUndo->setText(stack_undo->text());
-        ui->actionUndo->setEnabled(stack_undo->isEnabled());
-    });
-
-    connect(stack_redo, &QAction::changed, this, [this, stack_redo]() {
-        ui->actionRedo->setText(stack_redo->text());
-        ui->actionRedo->setEnabled(stack_redo->isEnabled());
-    });
-
-    connect(ui->actionUndo, &QAction::triggered, stack_undo, &QAction::trigger);
-    connect(ui->actionRedo, &QAction::triggered, stack_redo, &QAction::trigger);
+    stack_undo->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Z));
+    stack_redo->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_R));
+    ui->menuEdit->addAction(stack_undo);
+    ui->menuEdit->addAction(stack_redo);
 }
 
 MainWindow::~MainWindow()
 {
+    if (m_commandStack)
+        m_commandStack->disconnect(this); // INFO: Please do not Seg Fault...
+
     delete ui;
 }
 
@@ -63,8 +83,9 @@ void MainWindow::onAddClicked() {
     dialog->show();
     if (dialog->exec() == QDialog::Accepted) {
         if (dialog->result() == CredDialog::Result::Saved) {
-            Cred entry_to_add(dialog->getService(), dialog->getUsername(), Vault::getInstance().encrypt(dialog->getPassword()));
+            Cred entry_to_add(dialog->getService(), dialog->getUsername(), Vault::getInstance().encrypt(dialog->getPassword()), m_model->getNextOrder());
             m_commandStack->push(new InsertCommand(m_model, entry_to_add));
+
         }
     }
 }
@@ -82,8 +103,10 @@ void MainWindow::onEditClicked(const QModelIndex &proxyIndex) {
         if (dialog->result() == CredDialog::Result::Saved) {
             Cred entry_to_edit(dialog->getService(), dialog->getUsername(), Vault::getInstance().encrypt(dialog->getPassword()));
             m_commandStack->push(new EditCommand(m_model, row, entry_to_edit));
+            setStatusMessage("Edytowano pozycję");
         } else if (dialog->result() == CredDialog::Result::Deleted) {
             m_commandStack->push(new DeleteCommand(m_model, row));
+            setStatusMessage("Usunięto pozycję");
         }
     }
 }
@@ -91,11 +114,105 @@ void MainWindow::onEditClicked(const QModelIndex &proxyIndex) {
 void MainWindow::onDeleteAllClicked() {
     if(m_model->getCredentials().empty()) return;
     int res = QMessageBox::question(this, "Usuwanie danych", "Czy wyczyścić listę haseł?");
-    if (res == QMessageBox::Yes)
+    if (res == QMessageBox::Yes) {
         m_commandStack->push(new ClearCommand(m_model));
+        setStatusMessage("Usunięto dane");
+    }
 }
 
 void MainWindow::onCleanChanged(bool clean) {
     setWindowModified(!clean);
     m_clean = clean;
 }
+
+void MainWindow::onCopyPassword() {
+    QModelIndexList selection = ui->TableView->selectionModel()->selectedRows();
+    if (selection.isEmpty()) return;
+
+    QModelIndex proxyIndex = selection.first();
+    QModelIndex source_index = m_proxy->mapToSource(proxyIndex);
+    int row = source_index.row();
+    if (row < 0) return;
+    Cred credentials = m_model->getCredentials().at(row);
+    QString password = Vault::getInstance().decrypt(credentials.getPasswordBlob());
+    m_model->incrementUseCount(row);
+    m_clipboard->setText(password);
+    setStatusMessage("Hasło skopiowane");
+}
+
+void MainWindow::onMoveUp(){
+    QModelIndexList selection = ui->TableView->selectionModel()->selectedRows();
+    if (selection.isEmpty()) return;
+
+    QModelIndex current_proxy_idx = selection.first();
+    int visual_row = current_proxy_idx.row();
+
+    if (visual_row > 0) {
+        QModelIndex a_idx = m_proxy->index(visual_row - 1, 0);
+
+        int source_row_current = m_proxy->mapToSource(current_proxy_idx).row();
+        int source_row_above = m_proxy->mapToSource(a_idx).row();
+
+        QPersistentModelIndex persistent_idx(current_proxy_idx);
+
+        m_commandStack->push(new MoveCommand(m_model, m_proxy, source_row_current, source_row_above));
+
+        ui->TableView->selectRow(persistent_idx.row());
+    }
+    ui->TableView->setFocus();
+}
+
+void MainWindow::onMoveDown() {
+    QModelIndexList selection = ui->TableView->selectionModel()->selectedRows();
+    if (selection.isEmpty()) return;
+
+    QModelIndex current_proxy_idx = selection.first();
+    int visual_row = current_proxy_idx.row();
+
+    if (visual_row < m_proxy->rowCount() - 1) {
+        QModelIndex b_idx = m_proxy->index(visual_row + 1, 0);
+
+        int source_row_current = m_proxy->mapToSource(current_proxy_idx).row();
+        int source_row_below = m_proxy->mapToSource(b_idx).row();
+
+        QPersistentModelIndex persistent_idx(current_proxy_idx);
+
+        m_commandStack->push(new MoveCommand(m_model, m_proxy, source_row_below, source_row_current));
+
+        ui->TableView->selectRow(persistent_idx.row());
+    }
+    ui->TableView->setFocus();
+}
+
+void MainWindow::onManualOrdering() {
+    ui->ManualOrderingButton->setEnabled(false);
+    ui->UseCountOrderingButton->setEnabled(true);
+    ui->MoveUpButton->setEnabled(true);
+    ui->MoveDownButton->setEnabled(true);
+    m_proxy->sort(CredentialModel::Columns::ORDER, Qt::AscendingOrder);
+}
+
+void MainWindow::onUsageOrdering() {
+    ui->ManualOrderingButton->setEnabled(true);
+    ui->UseCountOrderingButton->setEnabled(false);
+    ui->MoveUpButton->setEnabled(false);
+    ui->MoveDownButton->setEnabled(false);
+    m_proxy->sort(CredentialModel::Columns::COUNT, Qt::DescendingOrder);
+}
+
+void MainWindow::setStatusMessage(const QString &message) {
+    statusBar()->showMessage(message, 2000);
+
+}
+
+void MainWindow::onNew() {
+    m_commandStack->clear();
+    m_clean = true;
+    m_model->clearCredentials();
+    Vault::getInstance().resetSessionKey();
+    setStatusMessage("Utworzono nowy plik");
+}
+void MainWindow::onSave() {}
+void MainWindow::onSaveAs() {}
+void MainWindow::onOpen() {}
+void MainWindow::onClose() {}

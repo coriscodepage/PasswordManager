@@ -6,6 +6,8 @@ class FileManager
 public:
     FileManager();
 
+private:
+
 };
 
 #endif // FILEMANAGER_H

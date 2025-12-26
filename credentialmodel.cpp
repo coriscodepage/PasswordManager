@@ -3,17 +3,18 @@
 
 CredentialModel::CredentialModel(QObject *parent)
     : QAbstractTableModel(parent)
+    , m_nextOrder(0)
 {}
 
 QVariant CredentialModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
     if (role != Qt::DisplayRole || orientation != Qt::Horizontal) return QVariant();
     switch (section) {
-        case 0:
-            return "Strona";
-        case 1:
+        case Columns::SERVICE:
+            return "Serwis";
+        case Columns::USERNAME:
             return "Login";
-        case 2:
+        case Columns::PASSWORD:
             return "Hasło";
         default:
             return QVariant();
@@ -31,7 +32,7 @@ int CredentialModel::columnCount(const QModelIndex &parent) const
 {
     if (parent.isValid())
         return 0;
-    return 3; // FIXME: Remember to set it correctly!
+    return 5; // FIXME: Remember to set it correctly!
 }
 
 QVariant CredentialModel::data(const QModelIndex &index, int role) const
@@ -42,11 +43,11 @@ QVariant CredentialModel::data(const QModelIndex &index, int role) const
     const auto &concrete_cred = m_data[index.row()];
 
     switch (index.column()) {
-        case 0:
+        case Columns::SERVICE:
             return concrete_cred.getService();
-        case 1:
+        case Columns::USERNAME:
             return concrete_cred.getUsername();
-        case 2:
+        case Columns::PASSWORD:
             if (m_visibility) {
                 if (m_decryptedCache.contains(index.row()))
                     return m_decryptedCache[index.row()];
@@ -56,6 +57,10 @@ QVariant CredentialModel::data(const QModelIndex &index, int role) const
                 return cachable_passwd;
             }
             return "********";
+        case Columns::COUNT:
+            return concrete_cred.getUseCount();
+        case Columns::ORDER:
+            return concrete_cred.getManualOrder();
         default:
             return QVariant();
     }
@@ -114,8 +119,28 @@ void CredentialModel::setVisibility(bool visibility) {
         m_decryptedCache.clear();
 
     if (!m_data.isEmpty()) {
-        QModelIndex top_left = index(0, 2);
-        QModelIndex bottom_right = index(m_data.size() - 1, 2);
+        QModelIndex top_left = index(0, Columns::PASSWORD);
+        QModelIndex bottom_right = index(m_data.size() - 1, Columns::PASSWORD);
         emit dataChanged(top_left, bottom_right, {Qt::DisplayRole});
     }
 }
+
+void CredentialModel::incrementUseCount(int row) {
+    if (row < 0 || row >= m_data.count()) return;
+    m_data[row].incUseCount();
+    QModelIndex top_left = index(row, Columns::COUNT);
+    QModelIndex bottom_right = index(row, Columns::COUNT);
+    emit dataChanged(top_left, bottom_right, {Qt::DisplayRole});
+}
+
+void CredentialModel::swapManualOrder(int row_a, int row_b) {
+    if (row_a < 0 || row_b < 0 || row_a >= m_data.size() || row_b >= m_data.size()) return;
+    int r1 = m_data[row_a].getManualOrder();
+    m_data[row_a].setManualOrder(m_data[row_b].getManualOrder());
+    m_data[row_b].setManualOrder(r1);
+    QModelIndex top_left = index(qMin(row_a, row_b), 0);
+    QModelIndex bottom_right = index(qMax(row_a, row_b), columnCount() - 1);
+    emit dataChanged(top_left, bottom_right, {Qt::DisplayRole});
+}
+
+
