@@ -47,7 +47,7 @@ void CredDialog::setData(const QString &service, const QString &username, const 
 }
 
 void CredDialog::onSave() {
-    ValidationResult result = Cred::validate(ui->ServiceEdit->text(), ui->UsernameEdit->text(), ui->PasswordEdit->text());
+    ValidationResult result = Cred::validate(ui->ServiceEdit->text().trimmed(), ui->UsernameEdit->text().trimmed(), ui->PasswordEdit->text());
     if (result.isVaid()) {
         if (m_passwordDirty) {
             PasswordStrength strength(ui->PasswordEdit->text());
@@ -103,11 +103,11 @@ void CredDialog::updatePasswordStrength(const QString &password) {
 }
 
 QString CredDialog::getService() {
-    return ui->ServiceEdit->text();
+    return ui->ServiceEdit->text().trimmed();
 }
 
 QString CredDialog::getUsername() {
-    return ui->UsernameEdit->text();
+    return ui->UsernameEdit->text().trimmed();
 }
 
 QString CredDialog::getPassword() {

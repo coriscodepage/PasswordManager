@@ -94,6 +94,8 @@ void CredentialModel::insertCredential(const Cred &cred, int row) {
 void CredentialModel::updateCredential(const Cred &cred, int row) {
     if (row < 0 || row >= m_data.count()) return;
     m_data[row] = cred;
+    if (m_decryptedCache.contains(row))
+        m_decryptedCache.remove(row);
     QModelIndex top_left = index(row, 0);
     QModelIndex bottom_right = index(row, columnCount() - 1);
     emit dataChanged(top_left, bottom_right, {Qt::DisplayRole, Qt::EditRole});

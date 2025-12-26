@@ -18,11 +18,11 @@ private:
     int m_manualOrder;
 
 public:
-    Cred(QString website, QString uname, QByteArray password_blob, int ord = 0)
+    Cred(QString website, QString uname, QByteArray password_blob, int ord = 0, int uses = 0)
         : m_service(std::move(website))
         , m_uname(std::move(uname))
         , m_passwordBlob(std::move(password_blob))
-        , m_useCount(0)
+        , m_useCount(uses)
         , m_manualOrder(ord)
     {}
     Cred() = default;

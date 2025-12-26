@@ -3,17 +3,25 @@
 #include "clearcommand.h"
 #include "creddialog.h"
 #include "credentialmodel.h"
+#include "cryptoexception.h"
 #include "deletecommand.h"
 #include "editcommand.h"
+#include "fileexception.h"
 #include "insertcommand.h"
 #include "movecommand.h"
 #include "vault.h"
 #include <QMessageBox>
 #include <QDebug>
+#include <QInputDialog>
+#include <QFileDialog>
+#include <QDir>
+#include <QCloseEvent>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
+    , m_fileManager(new FileManager())
+    , m_clean(true)
 {
     ui->setupUi(this);
     m_clipboard = QGuiApplication::clipboard();
@@ -27,6 +35,9 @@ MainWindow::MainWindow(QWidget *parent)
     ui->TableView->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->TableView->setSelectionMode(QAbstractItemView::SingleSelection);
     ui->TableView->setSortingEnabled(true);
+    ui->TableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    ui->TableView->hideColumn(CredentialModel::COUNT);
+    ui->TableView->hideColumn(CredentialModel::ORDER);
 
     // INFO: UI plumbing
     connect(ui->AddButton, &QPushButton::clicked, this, &MainWindow::onAddClicked);
@@ -39,27 +50,24 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->MoveDownButton, &QPushButton::clicked, this, &MainWindow::onMoveDown);
 
     connect(ui->actionNew, &QAction::triggered, this, &MainWindow::onNew);
+    connect(ui->actionOpen, &QAction::triggered, this, &MainWindow::onOpen);
     connect(ui->actionClose, &QAction::triggered, this, &QApplication::quit, Qt::QueuedConnection);
     connect(ui->actionSave, &QAction::triggered, this, &MainWindow::onSave);
-    connect(ui->actionNew, &QAction::triggered, this, &MainWindow::onSaveAs);
+    connect(ui->actionSaveAs, &QAction::triggered, this, &MainWindow::onSaveAs);
     connect(ui->actionInfo, &QAction::triggered, this, &MainWindow::onAbout);
 
     connect(ui->SearchEdit, &QLineEdit::textChanged, m_proxy, &QSortFilterProxyModel::setFilterFixedString); // INFO: Search using ONLY the Service column!
 
     connect(ui->TableView, &QTableView::doubleClicked, this, &MainWindow::onEditClicked);
 
-    // INFO: Setting a CustomContextMenu and using the signal for password copy
-    ui->TableView->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(ui->TableView, &QTableView::customContextMenuRequested, this, &MainWindow::onCopyPassword);
+    connect(ui->TableView, &QTableView::pressed, this, [this]() {
+        if (QGuiApplication::mouseButtons() & Qt::RightButton) {
+            onCopyPassword();
+        }
+    });
 
     // INFO: If user clicks on the header disable the special sorting modes
-    connect(ui->TableView->horizontalHeader(), &QHeaderView::sortIndicatorChanged, [this]() {
-        ui->TableView->horizontalHeader()->setSortIndicatorShown(true);
-        ui->UseCountOrderingButton->setEnabled(true);
-        ui->ManualOrderingButton->setEnabled(true);
-        ui->MoveUpButton->setEnabled(false);
-        ui->MoveDownButton->setEnabled(false);
-    });
+    connect(ui->TableView->horizontalHeader(), &QHeaderView::sortIndicatorChanged, this, &MainWindow::resetTableUi);
 
     // INFO: Undo stack and context menu setup
     m_commandStack = new QUndoStack(this);
@@ -157,8 +165,10 @@ void MainWindow::onCopyPassword() {
     if (row < 0) return;
     Cred credentials = m_model->getCredentials().at(row);
     QString password = Vault::getInstance().decrypt(credentials.getPasswordBlob());
+    QPersistentModelIndex persistent_idx(proxyIndex);
     m_model->incrementUseCount(row);
     m_clipboard->setText(password);
+    ui->TableView->selectRow(persistent_idx.row());
     setStatusMessage("Hasło skopiowane");
 }
 
@@ -221,7 +231,7 @@ void MainWindow::onUsageOrdering() {
     ui->MoveUpButton->setEnabled(false);
     ui->MoveDownButton->setEnabled(false);
     m_proxy->sort(CredentialModel::Columns::COUNT, Qt::DescendingOrder);
-    ui->TableView->horizontalHeader()->setSortIndicatorShown(true);
+    ui->TableView->horizontalHeader()->setSortIndicatorShown(false);
 }
 
 void MainWindow::setStatusMessage(const QString &message) {
@@ -230,16 +240,130 @@ void MainWindow::setStatusMessage(const QString &message) {
 }
 
 void MainWindow::onNew() {
-    m_commandStack->clear();
-    m_clean = true;
-    m_model->clearCredentials();
-    Vault::getInstance().resetSessionKey();
+    Vault::getInstance().resetSession();
+    clearContext();
+    resetTableUi();
+    ui->TableView->sortByColumn(CredentialModel::SERVICE, Qt::DescendingOrder);
     setStatusMessage("Utworzono nowy plik");
 }
-void MainWindow::onSave() {}
-void MainWindow::onSaveAs() {}
-void MainWindow::onOpen() {}
+void MainWindow::onSave() {
+    if (m_clean) {
+        setStatusMessage("Nie ma nic do zapisania");
+        return;
+    }
+    if (!m_fileManager->isPathSet()) {
+        QString file_path = QFileDialog::getSaveFileName(this, "Zapisz plik", QDir::homePath(), "Hasła (*.cer)");
+        if (file_path.isEmpty()) {
+            setStatusMessage("Należy podać ścieżkę do pliku");
+            return;
+        }
+        m_fileManager->setPath(file_path);
+        qDebug() << "[FILE] Path set: " << file_path;
+    }
+
+    if(!Vault::getInstance().isMasterPasswordSet()) {
+        bool ok;
+        QString password = QInputDialog::getText(this, "Hasło", "Proszę podać hasło do pliku:", QLineEdit::Normal, "", &ok);
+        if (!ok || password.isEmpty()) {
+            setStatusMessage("Należy podać hasło");
+            return;
+        }
+        Vault::getInstance().setMasterPassword(password);
+    }
+    try {
+        m_fileManager->saveJson(m_model->getCredentials());
+        setStatusMessage("Zapisano plik");
+    } catch (FileException &e) {
+        QMessageBox::critical(this,"Bład pliku","Błąd: " + QString(e.what()));
+    } catch (CryptoException &e) {
+        QMessageBox::critical(this,"Bład kryptograficzny","Błąd: " + QString(e.what()));
+    }
+    m_clean = true;
+    setWindowModified(false);
+}
+void MainWindow::onSaveAs() {
+    QString file_path = QFileDialog::getSaveFileName(this, "Zapisz plik jako", QDir::homePath(), "Hasła (*.cer)");
+    if (file_path.isEmpty()) {
+        setStatusMessage("Należy podać ścieżkę do pliku");
+        return;
+    }
+    m_fileManager->clearPath();
+    m_fileManager->setPath(file_path);
+    qDebug() << "[FILE] Path set: " << file_path;
+    m_clean = false;
+    onSave();
+}
+void MainWindow::onOpen() {
+    QString file_path = QFileDialog::getOpenFileName(this, "Otwórz plik", QDir::homePath(), "Hasła (*.cer)");
+    if (file_path.isEmpty()) {
+        setStatusMessage("Należy podać ścieżkę do pliku");
+        return;
+    }
+    bool ok;
+    QString password = QInputDialog::getText(this, "Hasło", "Proszę podać hasło do pliku:", QLineEdit::Normal, "", &ok);
+    if (!ok || password.isEmpty()) {
+        setStatusMessage("Należy podać hasło");
+        return;
+    }
+    clearContext();
+    m_fileManager->setPath(file_path);
+    Vault::getInstance().resetSession();
+    Vault::getInstance().setMasterPassword(password);
+    try {
+        QVector<Cred> data = m_fileManager->openJson();
+        m_model->setCredentials(data);
+        auto it = std::max_element(data.begin(), data.end(),
+            [](const Cred& a, const Cred& b) {
+                return a.getManualOrder() < b.getManualOrder();
+        });
+        m_model->setNextOrder(it->getManualOrder() + 1);
+
+        resetTableUi();
+        ui->TableView->sortByColumn(CredentialModel::SERVICE, Qt::DescendingOrder);
+        setStatusMessage("Otwarto plik");
+    } catch (FileException &e) {
+        QMessageBox::critical(this,"Bład pliku","Błąd: " + QString(e.what()));
+    } catch (CryptoException &e) {
+        QMessageBox::critical(this,"Bład kryptograficzny","Błąd: " + QString(e.what()));
+    }
+}
 
 void MainWindow::onAbout() {
     QMessageBox::about(this, "O nas", "Menadżer haseł.\nAutor: Coriscodepage.\nProject under the GPL License.\n©2025.");
+}
+
+void MainWindow::clearContext() {
+    m_fileManager->clearPath();
+    m_model->clearCredentials();
+    m_commandStack->clear();
+    m_clean = true;
+}
+
+void MainWindow::resetTableUi() {
+    ui->TableView->horizontalHeader()->setSortIndicatorShown(true);
+    ui->UseCountOrderingButton->setEnabled(true);
+    ui->ManualOrderingButton->setEnabled(true);
+    ui->MoveUpButton->setEnabled(false);
+    ui->MoveDownButton->setEnabled(false);
+}
+
+void MainWindow::closeEvent(QCloseEvent *event) {
+    if (!m_clean) {
+        QMessageBox::StandardButton resBtn = QMessageBox::question(this, "Niezapisane zmiany", "Czy zapisać przed wyjściem?", QMessageBox::Cancel | QMessageBox::No | QMessageBox::Yes, QMessageBox::Yes);
+
+        if (resBtn == QMessageBox::Yes) {
+            onSave();
+            if (m_clean) {
+                event->accept();
+            } else {
+                event->ignore();
+            }
+        } else if (resBtn == QMessageBox::No) {
+            event->accept();
+        } else {
+            event->ignore();
+        }
+    } else {
+        event->accept();
+    }
 }

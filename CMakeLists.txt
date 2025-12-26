@@ -34,6 +34,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         editcommand.h
         clearcommand.h
         movecommand.h
+        fileexception.h
+        cryptoexception.h
 
 
     )

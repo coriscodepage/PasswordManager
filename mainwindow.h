@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include "credentialmodel.h"
+#include "filemanager.h"
 #include <QMainWindow>
 #include <QSortFilterProxyModel>
 #include <qundostack.h>
@@ -36,6 +37,7 @@ private slots:
     void onSaveAs();
     void onOpen();
     void onAbout();
+    void resetTableUi();
 
 private:
     Ui::MainWindow *ui;
@@ -44,6 +46,11 @@ private:
     QUndoStack *m_commandStack;
     QClipboard *m_clipboard;
     bool m_clean;
+    FileManager *m_fileManager;
     void setStatusMessage(const QString &message);
+    void clearContext();
+
+protected:
+    void closeEvent(QCloseEvent *event) override;
 };
 #endif // MAINWINDOW_H
