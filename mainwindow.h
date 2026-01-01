@@ -49,6 +49,7 @@ private:
     FileManager *m_fileManager;
     void setStatusMessage(const QString &message);
     void clearContext();
+    void setTitle(const QString &title);
 
 protected:
     void closeEvent(QCloseEvent *event) override;

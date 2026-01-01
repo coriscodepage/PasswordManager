@@ -28,6 +28,7 @@ MainWindow::MainWindow(QWidget *parent)
     // INFO: Model and sorting (QSortFilterProxyModel) setup
     m_model = new CredentialModel(this);
     m_proxy = new QSortFilterProxyModel(this);
+    setTitle("Bez nazwy");
     m_proxy->setSourceModel(m_model);
     m_proxy->setFilterCaseSensitivity(Qt::CaseInsensitive);
 
@@ -65,6 +66,9 @@ MainWindow::MainWindow(QWidget *parent)
             onCopyPassword();
         }
     });
+
+    // INFO: Update window when path is changed
+    connect(m_fileManager, &FileManager::pathChanged, this, &MainWindow::setTitle);
 
     // INFO: If user clicks on the header disable the special sorting modes
     connect(ui->TableView->horizontalHeader(), &QHeaderView::sortIndicatorChanged, this, &MainWindow::resetTableUi);
@@ -304,6 +308,11 @@ void MainWindow::onSaveAs() {
     onSave();
 }
 void MainWindow::onOpen() {
+    if(!m_clean) {
+        QMessageBox::StandardButton resBtn = QMessageBox::question(this, "Niezapisane zmiany", "Czy zapisać zmiany przed wyjściem?", QMessageBox::Cancel | QMessageBox::No | QMessageBox::Yes, QMessageBox::Yes);
+        if (resBtn == QMessageBox::Yes)
+            onSave();
+    }
     QString file_path = QFileDialog::getOpenFileName(this, "Otwórz plik", QDir::homePath(), "Hasła (*.cer)");
     if (file_path.isEmpty()) {
         setStatusMessage("Należy podać ścieżkę do pliku");
@@ -340,7 +349,7 @@ void MainWindow::onOpen() {
 }
 
 void MainWindow::onAbout() {
-    QMessageBox::about(this, "O nas", "Menadżer haseł.\nAutor: Coriscodepage.\nProject under the GPL License.\n©2025.");
+    QMessageBox::about(this, "O nas", "Menadżer haseł.\nAutor: Coriscodepage.\nProject under the AGPL License.\n©2025.");
 }
 
 void MainWindow::clearContext() {
@@ -358,9 +367,13 @@ void MainWindow::resetTableUi() {
     ui->MoveDownButton->setEnabled(false);
 }
 
+void MainWindow::setTitle(const QString &title) {
+    setWindowTitle(QString("%1[*] - Menadżer haseł").arg(title));
+}
+
 void MainWindow::closeEvent(QCloseEvent *event) {
     if (!m_clean) {
-        QMessageBox::StandardButton resBtn = QMessageBox::question(this, "Niezapisane zmiany", "Czy zapisać przed wyjściem?", QMessageBox::Cancel | QMessageBox::No | QMessageBox::Yes, QMessageBox::Yes);
+        QMessageBox::StandardButton resBtn = QMessageBox::question(this, "Niezapisane zmiany", "Czy zapisać zmiany przed wyjściem?", QMessageBox::Cancel | QMessageBox::No | QMessageBox::Yes, QMessageBox::Yes);
 
         if (resBtn == QMessageBox::Yes) {
             onSave();

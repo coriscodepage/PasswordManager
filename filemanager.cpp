@@ -6,6 +6,11 @@
 
 FileManager::FileManager() : m_path("") {}
 
+void FileManager::setPath(const QString &path) {
+    m_path = path;
+    emit pathChanged(path);
+}
+
 void FileManager::saveJson(const QVector<Cred> &creds) {
     if (!isPathSet()) throw FileException("Ścieżka nie została ustawiona.");
     QJsonArray enties_array;
