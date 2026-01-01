@@ -91,8 +91,10 @@ void CredentialModel::insertCredential(const Cred &cred, int row) {
     endInsertRows();
 }
 
-void CredentialModel::updateCredential(const Cred &cred, int row) {
+void CredentialModel::updateCredential(Cred &cred, int row) {
     if (row < 0 || row >= m_data.count()) return;
+    cred.setManualOrder(m_data[row].getManualOrder());
+    cred.setUseCount(m_data[row].getUseCount());
     m_data[row] = cred;
     if (m_decryptedCache.contains(row))
         m_decryptedCache.remove(row);

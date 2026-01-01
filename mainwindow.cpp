@@ -74,24 +74,24 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(m_commandStack, &QUndoStack::cleanChanged, this, &MainWindow::onCleanChanged);
 
-    QAction *stack_undo = m_commandStack->createUndoAction(this, "Cofnij");
-    QAction *stack_redo = m_commandStack->createRedoAction(this, "Powtórz");
-    stack_undo->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Z));
-    stack_undo->setIcon(QIcon::fromTheme(QIcon::ThemeIcon::EditUndo));
-    stack_redo->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_R));
-    stack_redo->setIcon(QIcon::fromTheme(QIcon::ThemeIcon::EditRedo));
-    ui->menuEdit->addAction(stack_undo);
-    ui->menuEdit->addAction(stack_redo);
+    QAction *action_undo = m_commandStack->createUndoAction(this, "Cofnij");
+    QAction *action_redo = m_commandStack->createRedoAction(this, "Powtórz");
+    action_undo->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Z));
+    action_undo->setIcon(QIcon::fromTheme(QIcon::ThemeIcon::EditUndo));
+    action_redo->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Y));
+    action_redo->setIcon(QIcon::fromTheme(QIcon::ThemeIcon::EditRedo));
+    ui->menuEdit->addAction(action_undo);
+    ui->menuEdit->addAction(action_redo);
 
     // INFO: Show a message on undo/redo
-    connect(stack_undo, &QAction::triggered, this, [this](){
-        const QUndoCommand *cmd = m_commandStack->command(m_commandStack->index() - 1);
+    connect(action_undo, &QAction::triggered, this, [this](){
+        const QUndoCommand *cmd = m_commandStack->command(m_commandStack->index());
         if (cmd) {
             QString message = QString("Cofnięto %1").arg(cmd->text());
             setStatusMessage(message);
         }
     });
-    connect(stack_redo, &QAction::triggered, this, [this](){
+    connect(action_redo, &QAction::triggered, this, [this](){
         const QUndoCommand *cmd = m_commandStack->command(m_commandStack->index() - 1);
         if (cmd) {
             QString message = QString("Powtórzono %1").arg(cmd->text());
@@ -188,6 +188,7 @@ void MainWindow::onMoveUp(){
         QPersistentModelIndex persistent_idx(current_proxy_idx);
 
         m_commandStack->push(new MoveCommand(m_model, m_proxy, source_row_current, source_row_above, ui->TableView));
+        setWindowModified(true);
 
         ui->TableView->selectRow(persistent_idx.row());
     }
@@ -210,6 +211,7 @@ void MainWindow::onMoveDown() {
         QPersistentModelIndex persistent_idx(current_proxy_idx);
 
         m_commandStack->push(new MoveCommand(m_model, m_proxy, source_row_below, source_row_current, ui->TableView));
+        setWindowModified(true);
 
         ui->TableView->selectRow(persistent_idx.row());
     }
@@ -244,6 +246,7 @@ void MainWindow::onNew() {
     clearContext();
     resetTableUi();
     ui->TableView->sortByColumn(CredentialModel::SERVICE, Qt::DescendingOrder);
+    m_model->setVisibility(false);
     setStatusMessage("Utworzono nowy plik");
 }
 void MainWindow::onSave() {
@@ -290,6 +293,13 @@ void MainWindow::onSaveAs() {
     m_fileManager->clearPath();
     m_fileManager->setPath(file_path);
     qDebug() << "[FILE] Path set: " << file_path;
+    bool ok;
+    QString password = QInputDialog::getText(this, "Hasło", "Proszę podać hasło do pliku:", QLineEdit::Normal, "", &ok);
+    if (!ok || password.isEmpty()) {
+        setStatusMessage("Należy podać hasło");
+        return;
+    }
+    Vault::getInstance().setMasterPassword(password);
     m_clean = false;
     onSave();
 }
@@ -320,6 +330,7 @@ void MainWindow::onOpen() {
 
         resetTableUi();
         ui->TableView->sortByColumn(CredentialModel::SERVICE, Qt::DescendingOrder);
+        m_model->setVisibility(false);
         setStatusMessage("Otwarto plik");
     } catch (FileException &e) {
         QMessageBox::critical(this,"Bład pliku","Błąd: " + QString(e.what()));

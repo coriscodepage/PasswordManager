@@ -13,6 +13,7 @@ class EditCommand : public QUndoCommand
 
 public:
     EditCommand(CredentialModel *model, int row, const Cred &data) : m_newData(data), m_model(model), m_row(row) {
+        m_oldData = m_model->getCredentials().at(row);
         setText("Edytuj " + m_newData.getService());
     }
     void undo() override {

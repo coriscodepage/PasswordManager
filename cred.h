@@ -34,6 +34,7 @@ public:
     void setPasswordBlob(const QByteArray &password_blob) { m_passwordBlob = password_blob; }
     static ValidationResult validate(const QString &service, const QString &user, const QString &password);
     int getUseCount() const { return m_useCount; }
+    void setUseCount(int count) { m_useCount = count; }
     void incUseCount() { m_useCount += 1; }
     int getManualOrder() const { return m_manualOrder; }
     void setManualOrder(int position) { m_manualOrder = position; }
